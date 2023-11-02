@@ -1,2 +1,2 @@
-export { buildOpenAPIDocument, getRoutes } from "./openapi";
+export { buildOpenAPIDocument, getRoutes } from "./openAPI";
 export { openAPIRoute } from "./openAPIRoute";
