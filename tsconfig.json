@@ -1,0 +1,23 @@
+{
+  "compilerOptions": {
+    "module": "commonjs",
+    "esModuleInterop": true,
+    "target": "es2019",
+    "lib": ["es2019", "esnext.array"],
+    "declaration": true,
+    "noImplicitAny": true,
+    "declarationMap": true,
+    "moduleResolution": "node",
+    "experimentalDecorators": true,
+    "useUnknownInCatchVariables": false,
+    "emitDecoratorMetadata": true,
+    "strict": true,
+    "strictPropertyInitialization": false,
+    "skipLibCheck": true,
+    "sourceMap": true,
+    "outDir": "dist",
+    "baseUrl": ".",
+    "paths": { "src/*": ["src/*"] }
+  },
+  "include": ["src/**/*"]
+}
