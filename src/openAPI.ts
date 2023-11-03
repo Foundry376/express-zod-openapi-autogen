@@ -80,14 +80,14 @@ export function buildOpenAPIDocument(args: {
       responses[401] = {
         mediaType: "application/json",
         description: errors[401],
-        schema: ErrorResponse,
+        schema: ErrorResponse.openapi({ description: "A 401 error" }),
       };
     }
     if (errors[403]) {
       responses[403] = {
         mediaType: "application/json",
         description: errors[403],
-        schema: ErrorResponse,
+        schema: ErrorResponse.openapi({ description: "A 403 error" }),
       };
     }
 
@@ -96,7 +96,7 @@ export function buildOpenAPIDocument(args: {
       responses[404] = {
         mediaType: "application/json",
         description: "The item you requested could not be found",
-        schema: ErrorResponse,
+        schema: ErrorResponse.openapi({ description: "A 404 error" }),
       };
     }
 
@@ -105,7 +105,7 @@ export function buildOpenAPIDocument(args: {
       responses[400] = {
         mediaType: "application/json",
         description: "The request payload or query string parameter you passed was not valid",
-        schema: ErrorResponse,
+        schema: ErrorResponse.openapi({ description: "A 400 error" }),
       };
     }
 
