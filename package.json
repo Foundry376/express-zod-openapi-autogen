@@ -1,6 +1,6 @@
 {
   "name": "express-zod-openapi-autogen",
-  "version": "1.0.2",
+  "version": "1.1.0",
   "main": "dist/index.js",
   "types": "dist/index.d.ts",
   "license": "MIT",

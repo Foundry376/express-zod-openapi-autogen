@@ -2,33 +2,33 @@ import {
   extendZodWithOpenApi,
   OpenAPIGenerator,
   OpenAPIRegistry,
+  ResponseConfig,
 } from "@asteasolutions/zod-to-openapi";
 import { RequestHandler, Router } from "express";
-import { getSchemaOfOpenAPIRoute } from "./openAPIRoute";
 import { z, ZodArray, ZodEffects, ZodObject } from "zod";
+import { getSchemaOfOpenAPIRoute } from "./openAPIRoute";
+import { ErrorResponse } from "./schemas";
 
 extendZodWithOpenApi(z);
 
 export type OpenAPIDocument = ReturnType<OpenAPIGenerator["generateDocument"]>;
+export type OpenAPIComponents = ReturnType<OpenAPIGenerator["generateComponents"]>;
+export type OpenAPIConfig = Parameters<OpenAPIGenerator["generateDocument"]>[0];
 
-export function buildOpenAPIDocument(
-  apiRouters: Router[],
-  apiSchemaPaths: string[],
-  config: Parameters<OpenAPIGenerator["generateDocument"]>[0]
-) {
+export function buildOpenAPIDocument(args: {
+  config: OpenAPIConfig;
+  routers: Router[];
+  schemaPaths: string[];
+  errors: { 401?: string; 403?: string };
+  securitySchemes?: OpenAPIComponents["securitySchemes"];
+}): OpenAPIDocument {
+  const { config, routers, schemaPaths, securitySchemes, errors } = args;
   const registry = new OpenAPIRegistry();
   // Attach all of the Zod schemas to the OpenAPI specification
   // as components that can be referenced in the API definitions
-  const schemas = apiSchemaPaths
-    .flatMap((apiSchemaPath) =>
-      Object.entries(
-        require(apiSchemaPath) as { [key: string]: z.ZodType<any> }
-      )
-    )
-    .filter(
-      ([key, schema]) =>
-        schema instanceof ZodObject || schema instanceof ZodArray
-    )
+  const schemas = schemaPaths
+    .flatMap((apiSchemaPath) => Object.entries(require(apiSchemaPath) as { [key: string]: z.ZodType<any> }))
+    .filter(([key, schema]) => schema instanceof ZodObject || schema instanceof ZodArray)
     .map(([key, schema]) => ({
       key,
       schema,
@@ -40,9 +40,7 @@ export function buildOpenAPIDocument(
       return undefined;
     }
     if (type instanceof ZodEffects) {
-      const nonEffectedObj = schemas.find(
-        (s) => s.key === type._def.openapi?.refId
-      );
+      const nonEffectedObj = schemas.find((s) => s.key === type._def.openapi?.refId);
       if (nonEffectedObj) {
         return nonEffectedObj.registered;
       } else {
@@ -64,51 +62,92 @@ export function buildOpenAPIDocument(
 
   // Attach all the API routes, referencing the named components where
   // possible, and falling back to inlining the Zod shapes.
-  getRoutes(apiRouters).forEach(({ path, method, handler }) => {
-    const { tag, body, params, query, response, description, summary } =
+  getRoutes(routers).forEach(({ path, method, handler }) => {
+    const { tag, body, params, query, response, description, summary, security, responseContentType } =
       getSchemaOfOpenAPIRoute(handler) || {};
+
     //Express: /path/to/:variable/something -> OpenAPI /path/to/{variable}/something
     const pathOpenAPIFormat = path
       .split("/")
       .filter((p) => p.includes(":"))
-      .reduce(
-        (iPath, replaceMe) =>
-          iPath.replace(
-            new RegExp(replaceMe, "gi"),
-            `{${replaceMe.substring(1)}}`
-          ),
-        path
-      );
+      .reduce((iPath, replaceMe) => iPath.replace(new RegExp(replaceMe, "gi"), `{${replaceMe.substring(1)}}`), path);
+
+    const responses: {
+      [statusCode: string]: ResponseConfig;
+    } = {};
+
+    if (errors[401]) {
+      responses[401] = {
+        mediaType: "application/json",
+        description: errors[401],
+        schema: ErrorResponse,
+      };
+    }
+    if (errors[403]) {
+      responses[403] = {
+        mediaType: "application/json",
+        description: errors[403],
+        schema: ErrorResponse,
+      };
+    }
+
+    // If the request includes path parameters, a 404 error is most likely possible
+    if (params) {
+      responses[404] = {
+        mediaType: "application/json",
+        description: "The item you requested could not be found",
+        schema: ErrorResponse,
+      };
+    }
+
+    // If the request includes a query string or request body, Zod 400 errors are possible
+    if (query || body) {
+      responses[400] = {
+        mediaType: "application/json",
+        description: "The request payload or query string parameter you passed was not valid",
+        schema: ErrorResponse,
+      };
+    }
+
+    // If the API defines a response, assume a 200. If no response schema is specified
+    // we assume the response will be a 204 No Content
+    if (responseContentType) {
+      responses[200] = {
+        mediaType: responseContentType,
+        schema: z.unknown().openapi({ description: `A ${responseContentType} payload` }),
+      };
+    } else if (response) {
+      responses[200] = {
+        mediaType: "application/json",
+        schema: referencingNamedSchemas(response)!.openapi({ description: "200" }),
+      };
+    } else {
+      responses[204] = z.void().openapi({ description: "No content - successful operation" });
+    }
     registry.registerPath({
       tags: [tag || "default"],
       method: method,
       summary: summary,
       path: pathOpenAPIFormat,
       description: description,
+      security: security ? [{ [security]: [] }] : undefined,
       request: {
         params: asZodObject(referencingNamedSchemas(params)),
         query: asZodObject(referencingNamedSchemas(query)),
         body: referencingNamedSchemas(body),
       },
-      responses: response
-        ? {
-            200: {
-              mediaType: "application/json",
-              schema: referencingNamedSchemas(response)!.openapi({
-                description: "200",
-              }),
-            },
-          }
-        : {
-            204: z
-              .void()
-              .openapi({ description: "No content - successful operation" }),
-          },
+      responses: responses,
     });
   });
 
   const generator = new OpenAPIGenerator(registry.definitions);
   const openapiJSON = generator.generateDocument(config);
+
+  // Attach the security schemes provided
+  if (securitySchemes) {
+    openapiJSON.components!.securitySchemes ||= {};
+    Object.assign(openapiJSON.components!.securitySchemes, securitySchemes);
+  }
 
   // Verify that none of the "parameters" are appearing as optional, which is invalid
   // in the official OpenAPI spec and unsupported by readme.io
@@ -119,7 +158,7 @@ export function buildOpenAPIDocument(
           throw new Error(
             `OpenAPI Error: The route ${route} has an optional parameter ${param.name} in the path. ` +
               `Optional parameters in the route path are not supported by readme.io. Make the parameter required ` +
-              `or split the route definition into two separate ones, one with the param and one without.`
+              `or split the route definition into two separate ones, one with the param and one without.`,
           );
         }
       }
@@ -137,17 +176,11 @@ const asZodObject = (type?: z.ZodType<any>) => {
 };
 
 // Disable naming convention because fast_slash comes from Express.
-const regexPrefixToString = (path: {
-  fast_slash: unknown;
-  toString: () => string;
-}): string => {
+const regexPrefixToString = (path: { fast_slash: unknown; toString: () => string }): string => {
   if (path.fast_slash) {
     return "";
   }
-  return path
-    .toString()
-    .replace(`/^\\`, "")
-    .replace("(?:\\/(?=$))?(?=\\/|$)/i", "");
+  return path.toString().replace(`/^\\`, "").replace("(?:\\/(?=$))?(?=\\/|$)/i", "");
 };
 
 export const getRoutes = (routers: Router[]) => {
@@ -160,10 +193,7 @@ export const getRoutes = (routers: Router[]) => {
   const processMiddleware = (middleware: any, prefix = ""): void => {
     if (middleware.name === "router" && middleware.handle.stack) {
       for (const subMiddleware of middleware.handle.stack) {
-        processMiddleware(
-          subMiddleware,
-          `${prefix}${regexPrefixToString(middleware.regexp)}`
-        );
+        processMiddleware(subMiddleware, `${prefix}${regexPrefixToString(middleware.regexp)}`);
       }
     }
     if (!middleware.route) {

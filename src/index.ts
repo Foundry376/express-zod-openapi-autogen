@@ -1,2 +1,2 @@
-export { buildOpenAPIDocument, getRoutes } from "./openAPI";
-export { openAPIRoute } from "./openAPIRoute";
+export { OpenAPIConfig, OpenAPIDocument, buildOpenAPIDocument, getRoutes } from "./openAPI";
+export { getErrorSummary, openAPIRoute } from "./openAPIRoute";
