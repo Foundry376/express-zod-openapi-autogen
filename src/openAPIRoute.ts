@@ -3,13 +3,18 @@ import { NextFunction, Request, RequestHandler, Response } from "express";
 import { ZodError, ZodSchema, ZodTypeAny, z } from "zod";
 import { ErrorResponse } from "./schemas";
 
-type ValidatedMiddleware<TBody, TQuery, TParams, TResponse> = (
-  req: Request<TParams, any, TBody, TQuery>,
-  res: Response<TResponse | { error: string } | z.infer<typeof ErrorResponse>>,
+type ValidatedMiddleware<ZBody, ZQuery, ZParams, ZResponse> = (
+  req: Request<ZParams, any, ZBody, ZQuery>,
+  res: Response<ZResponse | { error: string } | z.infer<typeof ErrorResponse>>,
   next: NextFunction,
 ) => any;
 
-type SchemaDefinition<TBody, TQuery, TParams, TResponse> = {
+type SchemaDefinition<
+  TBody extends ZodTypeAny,
+  TQuery extends ZodTypeAny,
+  TParams extends ZodTypeAny,
+  TResponse extends ZodTypeAny,
+> = {
   /**The category this route should be displayed in within the OpenAPI documentation. */
   tag: string;
   /**A short one-line description of the route */
@@ -21,30 +26,29 @@ type SchemaDefinition<TBody, TQuery, TParams, TResponse> = {
    * is built. */
   security?: string;
   /**The zod schema defining the POST body of the request. */
-  body?: ZodSchema<TBody>;
+  body?: TBody;
   /**The zod schema defining the query string of the request. Use .optional() for optional
    * query params. Declare the entire object .strict() to fail if extra parameters are
    * passed, or .strip() to quietly remove them.
    */
-  query?: ZodSchema<TQuery>;
+  query?: TQuery;
   /**The zod schema defining the route params (eg: /users/:id). Note that these are always
    * string values. Defining them mostly just provides better typescript types on req.params.
    */
-  params?: ZodSchema<TParams>;
+  params?: TParams;
   /**The zod schema of the successful API response. In development mode, passing data that
    * does not match this type will yield a console warning.
    */
-  response?: ZodSchema<TResponse>;
+  response?: TResponse;
   /**The content-type of the response, if it is not JSON. Typically this is passed
    * instead of a response schema for responses that are text/csv, application/pdf, etc.
    */
   responseContentType?: string;
+  /** Mark the route as deprecated in generated OpenAPI docs. Does not have any impact on routing. */
+  deprecated?: boolean;
 };
 
-const check = <TType>(
-  obj?: any,
-  schema?: ZodSchema<TType>,
-): z.SafeParseReturnType<TType, TType> => {
+const check = <TType>(obj?: any, schema?: ZodSchema<TType>): z.SafeParseReturnType<TType, TType> => {
   if (!schema) {
     return { success: true, data: obj };
   }
@@ -57,15 +61,11 @@ type ValidatedRequestHandler = RequestHandler & {
 };
 
 export const getSchemaOfOpenAPIRoute = (fn: RequestHandler | ValidatedRequestHandler) => {
-  return "validateSchema" in fn
-    ? (fn["validateSchema"] as SchemaDefinition<any, any, any, any>)
-    : null;
+  return "validateSchema" in fn ? (fn["validateSchema"] as SchemaDefinition<any, any, any, any>) : null;
 };
 
 export const getErrorSummary = (error: ZodError<unknown>) => {
-  return error.issues
-    .map((i) => (i.path.length ? `${i.path.join(".")}: ${i.message}` : i.message))
-    .join(", ");
+  return error.issues.map((i) => (i.path.length ? `${i.path.join(".")}: ${i.message}` : i.message)).join(", ");
 };
 
 /**
@@ -73,13 +73,13 @@ export const getErrorSummary = (error: ZodError<unknown>) => {
  * of middleware so that we can validate the response shape as well as the request shape.
  */
 export const openAPIRoute = <
-  TBody = unknown,
-  TQuery = unknown,
-  TParams = unknown,
-  TResponse = unknown,
+  TBody extends ZodTypeAny,
+  TQuery extends ZodTypeAny,
+  TParams extends ZodTypeAny,
+  TResponse extends ZodTypeAny,
 >(
   schema: SchemaDefinition<TBody, TQuery, TParams, TResponse>,
-  middleware: ValidatedMiddleware<TBody, TQuery, TParams, TResponse>,
+  middleware: ValidatedMiddleware<z.infer<TBody>, z.infer<TQuery>, z.infer<TParams>, z.infer<TResponse>>,
 ): RequestHandler => {
   const fn: ValidatedRequestHandler = async (req, res, next) => {
     const bodyResult = check(req.body, schema.body);
@@ -98,9 +98,7 @@ export const openAPIRoute = <
           const result = schema.response ? acceptable.safeParse(body) : { success: true };
 
           if (result.success === false && "error" in result) {
-            console.warn(
-              `Note: Response JSON does not match schema:\n${getErrorSummary(result.error)}`,
-            );
+            console.warn(`Note: Response JSON does not match schema:\n${getErrorSummary(result.error)}`);
           }
         }
         return _json.apply(res, [body]);

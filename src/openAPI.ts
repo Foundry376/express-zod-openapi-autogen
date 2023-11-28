@@ -63,7 +63,7 @@ export function buildOpenAPIDocument(args: {
   // Attach all the API routes, referencing the named components where
   // possible, and falling back to inlining the Zod shapes.
   getRoutes(routers).forEach(({ path, method, handler }) => {
-    const { tag, body, params, query, response, description, summary, security, responseContentType } =
+    const { tag, body, params, query, response, description, summary, security, deprecated, responseContentType } =
       getSchemaOfOpenAPIRoute(handler) || {};
 
     //Express: /path/to/:variable/something -> OpenAPI /path/to/{variable}/something
@@ -130,6 +130,7 @@ export function buildOpenAPIDocument(args: {
       summary: summary,
       path: pathOpenAPIFormat,
       description: description,
+      deprecated: deprecated,
       security: security ? [{ [security]: [] }] : undefined,
       request: {
         params: asZodObject(referencingNamedSchemas(params)),
