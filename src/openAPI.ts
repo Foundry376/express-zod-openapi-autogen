@@ -3,6 +3,7 @@ import {
   OpenAPIGenerator,
   OpenAPIRegistry,
   ResponseConfig,
+  RouteConfig,
 } from "@asteasolutions/zod-to-openapi";
 import { RequestHandler, Router } from "express";
 import { z, ZodArray, ZodEffects, ZodObject } from "zod";
@@ -63,8 +64,19 @@ export function buildOpenAPIDocument(args: {
   // Attach all the API routes, referencing the named components where
   // possible, and falling back to inlining the Zod shapes.
   getRoutes(routers).forEach(({ path, method, handler }) => {
-    const { tag, body, params, query, response, description, summary, security, deprecated, responseContentType } =
-      getSchemaOfOpenAPIRoute(handler) || {};
+    const {
+      tag,
+      body,
+      params,
+      query,
+      response,
+      description,
+      summary,
+      security,
+      deprecated,
+      finalizeRouteConfig,
+      responseContentType,
+    } = getSchemaOfOpenAPIRoute(handler) || {};
 
     //Express: /path/to/:variable/something -> OpenAPI /path/to/{variable}/something
     const pathOpenAPIFormat = path
@@ -124,7 +136,7 @@ export function buildOpenAPIDocument(args: {
     } else {
       responses[204] = z.void().openapi({ description: "No content - successful operation" });
     }
-    registry.registerPath({
+    let openapiRouteConfig: RouteConfig = {
       tags: [tag || "default"],
       method: method,
       summary: summary,
@@ -138,7 +150,12 @@ export function buildOpenAPIDocument(args: {
         body: referencingNamedSchemas(body),
       },
       responses: responses,
-    });
+    };
+    if (finalizeRouteConfig) {
+      openapiRouteConfig = finalizeRouteConfig(openapiRouteConfig);
+    }
+
+    registry.registerPath(openapiRouteConfig);
   });
 
   const generator = new OpenAPIGenerator(registry.definitions);

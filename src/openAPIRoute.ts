@@ -1,4 +1,5 @@
 /* eslint-disable @typescript-eslint/no-explicit-any */
+import { RouteConfig } from "@asteasolutions/zod-to-openapi";
 import { NextFunction, Request, RequestHandler, Response } from "express";
 import { ZodError, ZodSchema, ZodTypeAny, z } from "zod";
 import { ErrorResponse } from "./schemas";
@@ -46,6 +47,11 @@ type SchemaDefinition<
   responseContentType?: string;
   /** Mark the route as deprecated in generated OpenAPI docs. Does not have any impact on routing. */
   deprecated?: boolean;
+
+  /** Provide a function to apply additional post-processing to the OpenAPI route configuration generated
+   * based on your API handler. This is the last function to run before the OpenAPI route is added to the registry.
+   */
+  finalizeRouteConfig?: (config: RouteConfig) => RouteConfig;
 };
 
 const check = <TType>(obj?: any, schema?: ZodSchema<TType>): z.SafeParseReturnType<TType, TType> => {
