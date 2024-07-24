@@ -156,8 +156,9 @@ export function buildOpenAPIDocument(args: {
     for (const method of Object.keys(impl)) {
       for (const param of impl[method].parameters || []) {
         if (param.required === false && param.in === "path") {
-          throw new Error(
-            `OpenAPI Error: The route ${route} has an optional parameter ${param.name} in the path. ` +
+          param.required = true;
+          console.warn(
+            `OpenAPI Warning: The route ${route} has an optional parameter ${param.name} in the path. ` +
               `Optional parameters in the route path are not supported by readme.io. Make the parameter required ` +
               `or split the route definition into two separate ones, one with the param and one without.`,
           );
