@@ -19,7 +19,7 @@ In your route files, wrap each route handler in `openAPIRoute`. The `tag`, `summ
 
 - If you omit one of the Zod schemas, no validation is performed and you receive the untyped data in your route handler.
 
-```
+```ts
 router.get(
   '/users/:id',
   openAPIRoute(
@@ -44,14 +44,11 @@ We'll pass a reference to these schemas to the OpenAPI generator, allowing it to
 
 In your Express application's `app.ts` file, load your route files containing public routes into an array, and pass them to `buildOpenAPIDocument` to create an OpenAPI schema. Note that `buildOpenAPIDocument` will throw errors if your Zod schemas are incomplete or cannot be translated to OpenAPI schemas.
 
-```
-import { buildOpenAPIDocument } from 'express-zod-openapi-autogen';
-import swaggerUI from 'swagger-ui-express';
+```ts
+import { buildOpenAPIDocument } from "express-zod-openapi-autogen";
+import swaggerUI from "swagger-ui-express";
 
-const PublicAPIs = [
-  require('./routes/users').default,
-  require('./routes/session').default,
-];
+const PublicAPIs = [require("./routes/users").default, require("./routes/session").default];
 
 // Attach API routes
 for (const router of PublicAPIs) {
@@ -60,13 +57,21 @@ for (const router of PublicAPIs) {
 
 // Public documentation (auto-generated for all routes above this line)
 try {
-  const doc = buildOpenAPIDocument(PublicAPIs, ['src/schemas'], {
-    openapi: '3.0.0',
-    servers: [{ url: `https://server.com/api` }],
-    info: {
-      version: '1.0.0',
-      title: 'My API',
-      description: `Welcome to the My API!`,
+  const doc = buildOpenAPIDocument({
+    routers: publicAPIs,
+    schemaPaths: ["src/schemas"],
+    config: {
+      openapi: "3.0.0",
+      servers: [{ url: `https://server.com/api` }],
+      info: {
+        version: "1.0.0",
+        title: "My API",
+        description: `Welcome to the My API!`,
+      },
+    },
+    errors: {
+      401: "Unauthorized",
+      403: "Forbidden",
     },
   });
   app.get(`/openapi.json`, (req, res) => res.json(doc));
@@ -80,11 +85,8 @@ try {
 
 - Unless you use middleware that converts query parameters to other data types, you may find that `?option=false` and `?option=100` are string values when your Zod schemas are validated. You can fix this by adding middleware that coerces these values to numbers/booleans, or by changing your expected Zod type:
 
-```
-  export const OptionalQueryNumber = z
-    .union([z.string(), z.number()])
-    .optional()
-    .openapi({ type: 'number' });
+```ts
+export const OptionalQueryNumber = z.union([z.string(), z.number()]).optional().openapi({ type: "number" });
 ```
 
 - If you'd like to provide example values, custom types, or descriptions for your Zod schemas, you can do so by chaining calls to `z.openapi` (shown in the example above). Note that `.openapi({example: ...})` can be used on both individual fields and also on entire objects.
