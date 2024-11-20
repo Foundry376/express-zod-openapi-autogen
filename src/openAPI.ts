@@ -90,34 +90,46 @@ export function buildOpenAPIDocument(args: {
 
     if (errors[401]) {
       responses[401] = {
-        mediaType: "application/json",
         description: errors[401],
-        schema: ErrorResponse.openapi({ description: "A 401 error" }),
+        content: {
+          "application/json": {
+            schema: ErrorResponse,
+          },
+        },
       };
     }
     if (errors[403]) {
       responses[403] = {
-        mediaType: "application/json",
         description: errors[403],
-        schema: ErrorResponse.openapi({ description: "A 403 error" }),
+        content: {
+          "application/json": {
+            schema: ErrorResponse,
+          },
+        },
       };
     }
 
     // If the request includes path parameters, a 404 error is most likely possible
     if (params) {
       responses[404] = {
-        mediaType: "application/json",
         description: "The item you requested could not be found",
-        schema: ErrorResponse.openapi({ description: "A 404 error" }),
+        content: {
+          "application/json": {
+            schema: ErrorResponse,
+          },
+        },
       };
     }
 
     // If the request includes a query string or request body, Zod 400 errors are possible
     if (query || body) {
       responses[400] = {
-        mediaType: "application/json",
         description: "The request payload or query string parameter you passed was not valid",
-        schema: ErrorResponse.openapi({ description: "A 400 error" }),
+        content: {
+          "application/json": {
+            schema: ErrorResponse,
+          },
+        },
       };
     }
 
@@ -125,16 +137,24 @@ export function buildOpenAPIDocument(args: {
     // we assume the response will be a 204 No Content
     if (responseContentType) {
       responses[200] = {
-        mediaType: responseContentType,
-        schema: z.unknown().openapi({ description: `A ${responseContentType} payload` }),
+        description: `A ${responseContentType} payload`,
+        content: {
+          [responseContentType]: {
+            schema: z.unknown(),
+          },
+        },
       };
     } else if (response) {
       responses[200] = {
-        mediaType: "application/json",
-        schema: referencingNamedSchemas(response)!.openapi({ description: "200" }),
+        description: "200",
+        content: {
+          "application/json": {
+            schema: referencingNamedSchemas(response)!,
+          },
+        },
       };
     } else {
-      responses[204] = z.void().openapi({ description: "No content - successful operation" });
+      responses[204] = { description: "No content - successful operation" };
     }
     let openapiRouteConfig: RouteConfig = {
       tags: [tag || "default"],
