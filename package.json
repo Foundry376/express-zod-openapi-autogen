@@ -9,7 +9,8 @@
   },
   "scripts": {
     "build": "tsc",
-    "prepublish": "tsc"
+    "prepublish": "tsc",
+    "test": "NODE_ENV=test mocha --exit"
   },
   "dependencies": {
     "@asteasolutions/zod-to-openapi": "^1.2.1"
@@ -19,7 +20,16 @@
     "zod": "^3"
   },
   "devDependencies": {
+    "@types/chai": "^4.3.1",
+    "@types/chai-spies": "^1.0.6",
     "@types/express": "^4.17.20",
+    "@types/mocha": "^10.0.9",
+    "@types/node": "^22.9.0",
+    "chai": "^4.3.6",
+    "chai-spies": "^1.1.0",
+    "express": "^5.0.0-beta.1",
+    "mocha": "^10.8.2",
+    "ts-node": "^10.9.2",
     "typescript": "^5.2.2",
     "zod": "^3"
   }
