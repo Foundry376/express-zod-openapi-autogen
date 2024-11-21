@@ -1,6 +1,11 @@
-name: Run Tests
+name: Tests
 
-on: [push, pull_request]
+on:
+  push:
+    branches: [main]
+  pull_request:
+    branches:
+      - '**' # This wildcard means it will run on pull requests to all branches
 
 jobs:
   test:
@@ -8,10 +13,13 @@ jobs:
 
     steps:
     - name: Checkout repository
-      uses: actions/checkout@v2
+      uses: actions/checkout@v4
 
     - name: Set up Node.js
-      uses: actions/setup-node@v2
+      uses: actions/setup-node@v4
+      with:
+          node-version: 20
+          cache: yarn
 
     - name: Install dependencies
       run: yarn install
