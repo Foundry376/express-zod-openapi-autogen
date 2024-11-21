@@ -1,4 +1,4 @@
-## express-zod-openapi-autogen
+# express-zod-openapi-autogen
 
 This repository provides (relatively) un-opinionated utility methods for creating Express APIs that leverage Zod for request and response validation and auto-generate OpenAPI documentation.
 
@@ -61,7 +61,6 @@ try {
     routers: publicAPIs,
     schemaPaths: ["src/schemas"],
     config: {
-      openapi: "3.0.0",
       servers: [{ url: `https://server.com/api` }],
       info: {
         version: "1.0.0",
@@ -73,6 +72,7 @@ try {
       401: "Unauthorized",
       403: "Forbidden",
     },
+    openApiVersion: "3.0.0",
   });
   app.get(`/openapi.json`, (req, res) => res.json(doc));
   app.use(`/openapi`, swaggerUI.serve, swaggerUI.setup(doc));

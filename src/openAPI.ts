@@ -6,6 +6,7 @@ import {
   RouteConfig,
 } from "@asteasolutions/zod-to-openapi";
 import { RequestHandler, Router } from "express";
+import type { ComponentsObject } from "openapi3-ts";
 import { z, ZodArray, ZodEffects, ZodObject } from "zod";
 import { getSchemaOfOpenAPIRoute } from "./openAPIRoute";
 import { ErrorResponse } from "./schemas";
@@ -15,15 +16,17 @@ extendZodWithOpenApi(z);
 export type OpenAPIDocument = ReturnType<OpenAPIGenerator["generateDocument"]>;
 export type OpenAPIComponents = ReturnType<OpenAPIGenerator["generateComponents"]>;
 export type OpenAPIConfig = Parameters<OpenAPIGenerator["generateDocument"]>[0];
+export type OpenApiVersion = ConstructorParameters<typeof OpenAPIGenerator>[1];
 
 export function buildOpenAPIDocument(args: {
   config: OpenAPIConfig;
   routers: Router[];
   schemaPaths: string[];
   errors: { 401?: string; 403?: string };
-  securitySchemes?: OpenAPIComponents["securitySchemes"];
+  securitySchemes?: ComponentsObject["securitySchemes"];
+  openApiVersion: OpenApiVersion;
 }): OpenAPIDocument {
-  const { config, routers, schemaPaths, securitySchemes, errors } = args;
+  const { config, routers, schemaPaths, securitySchemes, errors, openApiVersion } = args;
   const registry = new OpenAPIRegistry();
   // Attach all of the Zod schemas to the OpenAPI specification
   // as components that can be referenced in the API definitions
@@ -41,7 +44,7 @@ export function buildOpenAPIDocument(args: {
       return undefined;
     }
     if (type instanceof ZodEffects) {
-      const nonEffectedObj = schemas.find((s) => s.key === type._def.openapi?.refId);
+      const nonEffectedObj = schemas.find((s) => s.key === type._def.openapi?._internal?.refId);
       if (nonEffectedObj) {
         return nonEffectedObj.registered;
       } else {
@@ -186,7 +189,7 @@ export function buildOpenAPIDocument(args: {
     registry.registerPath(openapiRouteConfig);
   });
 
-  const generator = new OpenAPIGenerator(registry.definitions);
+  const generator = new OpenAPIGenerator(registry.definitions, openApiVersion);
   const openapiJSON = generator.generateDocument(config);
 
   // Attach the security schemes provided
