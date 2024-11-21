@@ -83,10 +83,10 @@ try {
 
 ## Implementation Notes
 
-- Unless you use middleware that converts query parameters to other data types, you may find that `?option=false` and `?option=100` are string values when your Zod schemas are validated. You can fix this by adding middleware that coerces these values to numbers/booleans, or by changing your expected Zod type:
+- Unless you use middleware that converts query parameters to other data types, you may find that `?option=false` and `?option=100` are string values when your Zod schemas are validated. You can fix this by adding middleware that coerces these values to numbers/booleans, or by using Zod coerce:
 
 ```ts
-export const OptionalQueryNumber = z.union([z.string(), z.number()]).optional().openapi({ type: "number" });
+export const OptionalQueryNumber = z.coerce.number().optional().openapi({ type: "number" });
 ```
 
 - If you'd like to provide example values, custom types, or descriptions for your Zod schemas, you can do so by chaining calls to `z.openapi` (shown in the example above). Note that `.openapi({example: ...})` can be used on both individual fields and also on entire objects.
