@@ -142,9 +142,8 @@ describe("buildOpenAPIDocument", () => {
     const errors = { 401: "Unauthorized", 403: "Forbidden" };
 
     const document = buildOpenAPIDocument({ config, routers, schemaPaths, errors });
-
     const responseSchema = document.paths["/test"].get.responses["200"].content["application/json"].schema;
 
-    expect(responseSchema.allOf.some((a: any) => a.$ref.includes("ResponseSchema"))).to.be.true;
+    expect(responseSchema.$ref.includes("ResponseSchema")).to.be.true;
   });
 });
