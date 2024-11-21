@@ -70,7 +70,7 @@ describe("buildOpenAPIDocument", () => {
       ),
     );
     const routers: Router[] = [router];
-    const schemaPaths: string[] = [];
+    const schemaPaths: string[] = ["../mocks/schemas"];
     const errors = { 401: "Unauthorized", 403: "Forbidden" };
 
     const document = buildOpenAPIDocument({ config, routers, schemaPaths, errors });
@@ -145,5 +145,30 @@ describe("buildOpenAPIDocument", () => {
     const responseSchema = document.paths["/test"].get.responses["200"].content["application/json"].schema;
 
     expect(responseSchema.$ref.includes("ResponseSchema")).to.be.true;
+  });
+
+  it("should properly describe routes with request body", () => {
+    const config = { openapi: "3.0.0", info: { title: "Test API", version: "1.0.0" } };
+    const router = Router();
+    router.get(
+      "/test",
+      openAPIRoute(
+        {
+          tag: "Test",
+          summary: "Test route",
+          body: schemas.BodySchema,
+          response: schemas.ResponseSchema,
+        },
+        (req, res) => res.json({ success: true }),
+      ),
+    );
+    const routers: Router[] = [router];
+    const schemaPaths: string[] = ["../mocks/schemas"];
+    const errors = { 401: "Unauthorized", 403: "Forbidden" };
+
+    const document = buildOpenAPIDocument({ config, routers, schemaPaths, errors });
+    const requestBodySchema = document.paths["/test"].get.requestBody.content["application/json"].schema;
+
+    expect(requestBodySchema.$ref.includes("BodySchema")).to.be.true;
   });
 });

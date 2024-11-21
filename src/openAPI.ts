@@ -167,7 +167,15 @@ export function buildOpenAPIDocument(args: {
       request: {
         params: asZodObject(referencingNamedSchemas(params)),
         query: asZodObject(referencingNamedSchemas(query)),
-        body: referencingNamedSchemas(body),
+        body: body
+          ? {
+              content: {
+                "application/json": {
+                  schema: referencingNamedSchemas(body),
+                },
+              },
+            }
+          : undefined,
       },
       responses: responses,
     };
