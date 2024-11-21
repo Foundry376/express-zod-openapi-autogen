@@ -20,5 +20,6 @@
     "paths": { "src/*": ["src/*"] },
     "allowJs": true
   },
-  "include": ["src/**/*"]
+  "include": ["src/**/*"],
+  "exclude": ["src/**/*.test.ts"]
 }
