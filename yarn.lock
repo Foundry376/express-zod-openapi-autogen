@@ -2,12 +2,12 @@
 # yarn lockfile v1
 
 
-"@asteasolutions/zod-to-openapi@^3.4.0":
-  version "3.4.0"
-  resolved "https://registry.yarnpkg.com/@asteasolutions/zod-to-openapi/-/zod-to-openapi-3.4.0.tgz#7b74b1c32b102048a856b990577f1ebe1861aa18"
-  integrity sha512-xilC2RmsAoJoD0RqZrqArNuC8ByzBIkElIQWEIwreCwSGPHbv2my3d4mnY4x0qQWmSpVnpphEU3Cjl73MpOHjQ==
+"@asteasolutions/zod-to-openapi@^4.8.0":
+  version "4.8.0"
+  resolved "https://registry.yarnpkg.com/@asteasolutions/zod-to-openapi/-/zod-to-openapi-4.8.0.tgz#34c29228c5cd0098a534b3536c9f486fafca2cc1"
+  integrity sha512-FQlBeHIhSoEhjddAWD1v2zbeBESfTdaAVQuUr0RY9t0rN8ogoEaGirv2Ne8kQQTAVGydJzUMAOIlPULEOQDoeA==
   dependencies:
-    openapi3-ts "^3.1.1"
+    openapi3-ts "^4.1.2"
 
 "@babel/code-frame@^7.0.0", "@babel/code-frame@^7.22.13":
   version "7.26.2"
@@ -3432,12 +3432,12 @@ onetime@^6.0.0:
   dependencies:
     mimic-fn "^4.0.0"
 
-openapi3-ts@^3.1.1, openapi3-ts@^3.2.0:
-  version "3.2.0"
-  resolved "https://registry.yarnpkg.com/openapi3-ts/-/openapi3-ts-3.2.0.tgz#7e30d33c480e938e67e809ab16f419bc9beae3f8"
-  integrity sha512-/ykNWRV5Qs0Nwq7Pc0nJ78fgILvOT/60OxEmB3v7yQ8a8Bwcm43D4diaYazG/KBn6czA+52XYy931WFLMCUeSg==
+openapi3-ts@^4.1.2:
+  version "4.4.0"
+  resolved "https://registry.yarnpkg.com/openapi3-ts/-/openapi3-ts-4.4.0.tgz#eff29958e601deec24459ea811989a4fb59d4116"
+  integrity sha512-9asTNB9IkKEzWMcHmVZE7Ts3kC9G7AFHfs8i7caD8HbI76gEjdkId4z/AkP83xdZsH7PLAnnbl47qZkXuxpArw==
   dependencies:
-    yaml "^2.2.1"
+    yaml "^2.5.0"
 
 p-each-series@^3.0.0:
   version "3.0.0"
@@ -4804,7 +4804,7 @@ yallist@^5.0.0:
   resolved "https://registry.yarnpkg.com/yallist/-/yallist-5.0.0.tgz#00e2de443639ed0d78fd87de0d27469fbcffb533"
   integrity sha512-YgvUTfwqyc7UXVMrB+SImsVYSmTS8X/tSrtdNZMImM+n7+QTriRXyXim0mBrTXNeqzVF0KWGgHPeiyViFFrNDw==
 
-yaml@^2.2.1:
+yaml@^2.5.0:
   version "2.6.1"
   resolved "https://registry.yarnpkg.com/yaml/-/yaml-2.6.1.tgz#42f2b1ba89203f374609572d5349fb8686500773"
   integrity sha512-7r0XPzioN/Q9kXBro/XPnA6kznR73DHq+GXh5ON7ZozRO6aMjbmiBuKste2wslTFkC5d1dw0GooOCepZXJ2SAg==

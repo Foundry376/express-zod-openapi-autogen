@@ -1,6 +1,7 @@
 import { expect, spy, use } from "chai";
 import chaiSpies from "chai-spies";
 import { Router } from "express";
+import type { PathItemObject } from "openapi3-ts/oas30";
 import * as schemas from "../mocks/schemas";
 import { buildOpenAPIDocument } from "./openAPI";
 import { openAPIRoute } from "./openAPIRoute";
@@ -104,9 +105,11 @@ describe("buildOpenAPIDocument", () => {
 
     expect(document.paths).to.be.an("object");
     for (const path in document.paths) {
-      for (const method in document.paths[path]) {
-        expect(document.paths[path][method].responses).to.have.property("401");
-        expect(document.paths[path][method].responses).to.have.property("403");
+      for (const key in document.paths[path]) {
+        const method = key as keyof PathItemObject;
+        const { responses } = document.paths[path][method];
+        expect(responses).to.have.property("401");
+        expect(responses).to.have.property("403");
       }
     }
   });
@@ -157,7 +160,8 @@ describe("buildOpenAPIDocument", () => {
     const errors = { 401: "Unauthorized", 403: "Forbidden" };
 
     const document = buildOpenAPIDocument({ config, routers, schemaPaths, errors, openApiVersion });
-    const responseSchema = document.paths["/test"].get.responses["200"].content["application/json"].schema;
+    const method = document.paths["/test"].get;
+    const responseSchema = method!.responses["200"].content["application/json"].schema;
 
     expect(responseSchema.$ref.includes("ResponseSchema")).to.be.true;
   });
@@ -182,7 +186,9 @@ describe("buildOpenAPIDocument", () => {
     const errors = { 401: "Unauthorized", 403: "Forbidden" };
 
     const document = buildOpenAPIDocument({ config, routers, schemaPaths, errors, openApiVersion });
-    const requestBodySchema = document.paths["/test"].get.requestBody.content["application/json"].schema;
+    const method = document.paths["/test"].get;
+    // @ts-ignore
+    const requestBodySchema = method!.requestBody?.content["application/json"].schema;
 
     expect(requestBodySchema.$ref.includes("BodySchema")).to.be.true;
   });

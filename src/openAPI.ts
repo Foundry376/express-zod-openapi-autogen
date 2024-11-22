@@ -6,7 +6,7 @@ import {
   RouteConfig,
 } from "@asteasolutions/zod-to-openapi";
 import { RequestHandler, Router } from "express";
-import type { ComponentsObject } from "openapi3-ts";
+import type { ComponentsObject } from "openapi3-ts/oas30";
 import { z, ZodArray, ZodEffects, ZodObject } from "zod";
 import { getSchemaOfOpenAPIRoute } from "./openAPIRoute";
 import { ErrorResponse } from "./schemas";
@@ -201,7 +201,8 @@ export function buildOpenAPIDocument(args: {
   // Verify that none of the "parameters" are appearing as optional, which is invalid
   // in the official OpenAPI spec and unsupported by readme.io
   for (const [route, impl] of Object.entries(openapiJSON.paths)) {
-    for (const method of Object.keys(impl)) {
+    for (const key of Object.keys(impl)) {
+      const method = key as keyof typeof impl;
       for (const param of impl[method].parameters || []) {
         if (param.required === false && param.in === "path") {
           param.required = true;
