@@ -1,10 +1,12 @@
 import {
   extendZodWithOpenApi,
-  OpenAPIGenerator,
+  OpenApiGeneratorV3,
+  OpenApiGeneratorV31,
   OpenAPIRegistry,
   ResponseConfig,
   RouteConfig,
 } from "@asteasolutions/zod-to-openapi";
+import { OpenApiVersion } from "@asteasolutions/zod-to-openapi/dist/openapi-generator";
 import { RequestHandler, Router } from "express";
 import type { ComponentsObject } from "openapi3-ts/oas30";
 import { z, ZodArray, ZodEffects, ZodObject } from "zod";
@@ -13,19 +15,19 @@ import { ErrorResponse } from "./schemas";
 
 extendZodWithOpenApi(z);
 
-export type OpenAPIDocument = ReturnType<OpenAPIGenerator["generateDocument"]>;
-export type OpenAPIComponents = ReturnType<OpenAPIGenerator["generateComponents"]>;
-export type OpenAPIConfig = Parameters<OpenAPIGenerator["generateDocument"]>[0];
-export type OpenApiVersion = ConstructorParameters<typeof OpenAPIGenerator>[1];
+export type OpenAPIDocument = ReturnType<OpenApiGeneratorV3["generateDocument"]>;
+export type OpenAPIV31Document = ReturnType<OpenApiGeneratorV31["generateDocument"]>;
+export type OpenAPIComponents = ReturnType<OpenApiGeneratorV3["generateComponents"]>;
+export type OpenAPIConfig = Parameters<OpenApiGeneratorV3["generateDocument"]>[0];
 
 export function buildOpenAPIDocument(args: {
-  config: OpenAPIConfig;
+  config: Omit<OpenAPIConfig, "openapi">;
   routers: Router[];
   schemaPaths: string[];
   errors: { 401?: string; 403?: string };
   securitySchemes?: ComponentsObject["securitySchemes"];
   openApiVersion: OpenApiVersion;
-}): OpenAPIDocument {
+}): OpenAPIDocument | OpenAPIV31Document {
   const { config, routers, schemaPaths, securitySchemes, errors, openApiVersion } = args;
   const registry = new OpenAPIRegistry();
   // Attach all of the Zod schemas to the OpenAPI specification
@@ -189,8 +191,11 @@ export function buildOpenAPIDocument(args: {
     registry.registerPath(openapiRouteConfig);
   });
 
-  const generator = new OpenAPIGenerator(registry.definitions, openApiVersion);
-  const openapiJSON = generator.generateDocument(config);
+  const generator =
+    openApiVersion === "3.1.0"
+      ? new OpenApiGeneratorV31(registry.definitions)
+      : new OpenApiGeneratorV3(registry.definitions);
+  const openapiJSON = generator.generateDocument({ ...config, openapi: openApiVersion });
 
   // Attach the security schemes provided
   if (securitySchemes) {
@@ -200,17 +205,19 @@ export function buildOpenAPIDocument(args: {
 
   // Verify that none of the "parameters" are appearing as optional, which is invalid
   // in the official OpenAPI spec and unsupported by readme.io
-  for (const [route, impl] of Object.entries(openapiJSON.paths)) {
-    for (const key of Object.keys(impl)) {
-      const method = key as keyof typeof impl;
-      for (const param of impl[method].parameters || []) {
-        if (param.required === false && param.in === "path") {
-          param.required = true;
-          console.warn(
-            `OpenAPI Warning: The route ${route} has an optional parameter ${param.name} in the path. ` +
-              `Optional parameters in the route path are not supported by readme.io. Make the parameter required ` +
-              `or split the route definition into two separate ones, one with the param and one without.`,
-          );
+  if (openapiJSON.paths) {
+    for (const [route, impl] of Object.entries(openapiJSON.paths)) {
+      for (const key of Object.keys(impl)) {
+        const method = key as keyof typeof impl;
+        for (const param of impl[method].parameters || []) {
+          if (param.required === false && param.in === "path") {
+            param.required = true;
+            console.warn(
+              `OpenAPI Warning: The route ${route} has an optional parameter ${param.name} in the path. ` +
+                `Optional parameters in the route path are not supported by readme.io. Make the parameter required ` +
+                `or split the route definition into two separate ones, one with the param and one without.`,
+            );
+          }
         }
       }
     }
