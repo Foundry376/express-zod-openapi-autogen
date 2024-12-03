@@ -1,7 +1,7 @@
 import { expect, spy, use } from "chai";
 import chaiSpies from "chai-spies";
 import { Router } from "express";
-import type { PathItemObject } from "openapi3-ts/oas30";
+import type { PathItemObject, SchemaObject } from "openapi3-ts/oas30";
 import * as schemas from "../mocks/schemas";
 import { buildOpenAPIDocument } from "./openAPI";
 import { openAPIRoute } from "./openAPIRoute";
@@ -60,19 +60,62 @@ describe("buildOpenAPIDocument", () => {
     const schemaPaths: string[] = ["../mocks/schemas"];
     const errors = { 401: "Unauthorized", 403: "Forbidden" };
 
-    const document = buildOpenAPIDocument({ config, routers, schemaPaths, errors, openApiVersion });
+    const document = buildOpenAPIDocument({ config, routers, schemaPaths, errors, openApiVersion: "3.1.0" });
 
     expect(document.components!.schemas).to.have.property("BodySchema");
     expect(document.components!.schemas!.BodySchema).to.deep.equal({
       type: "object",
-      properties: { name: { type: "string" } },
+      properties: {
+        address: {
+          items: {
+            anyOf: [
+              {
+                type: "integer",
+              },
+              {
+                type: "string",
+              },
+              {
+                enum: ["street", "avenue", "boulevard"],
+                type: "string",
+              },
+            ],
+          },
+          maxItems: 3,
+          minItems: 3,
+          type: "array",
+        },
+        name: { type: "string" },
+      },
       required: ["name"],
       title: "User",
       description: "Required user information",
     });
     expect(document.components!.schemas!.QuerySchema).to.deep.equal({
       type: "object",
-      properties: { name: { type: "string" }, age: { type: "number" } },
+      properties: {
+        address: {
+          items: {
+            anyOf: [
+              {
+                type: "integer",
+              },
+              {
+                type: "string",
+              },
+              {
+                enum: ["street", "avenue", "boulevard"],
+                type: "string",
+              },
+            ],
+          },
+          maxItems: 3,
+          minItems: 3,
+          type: "array",
+        },
+        name: { type: "string" },
+        age: { type: "number" },
+      },
       required: ["name"],
       title: "User details",
       description: "Optional user information",
@@ -200,5 +243,31 @@ describe("buildOpenAPIDocument", () => {
     const requestBodySchema = method!.requestBody?.content["application/json"].schema;
 
     expect(requestBodySchema.$ref.includes("BodySchema")).to.be.true;
+  });
+
+  it("should allow for bigints in schemas", () => {
+    const config = { info: { title: "Test API", version: "1.0.0" } };
+    const router = Router();
+    router.get(
+      "/test",
+      openAPIRoute(
+        {
+          tag: "Test",
+          summary: "Test route",
+          query: schemas.QuerySchema,
+          response: schemas.ResponseSchema,
+        },
+        (req, res) => res.json({ success: true, value: BigInt(1234) }),
+      ),
+    );
+    const routers: Router[] = [router];
+    const schemaPaths: string[] = ["../mocks/schemas"];
+    const errors = { 401: "Unauthorized", 403: "Forbidden" };
+
+    const document = buildOpenAPIDocument({ config, routers, schemaPaths, errors, openApiVersion });
+    const responseSchema = document.components!.schemas!.ResponseSchema as SchemaObject;
+    const value = responseSchema.properties!.value as SchemaObject;
+
+    expect(value.type).to.equal("integer");
   });
 });
