@@ -16,7 +16,7 @@
     "test": "NODE_ENV=test mocha --exit"
   },
   "dependencies": {
-    "@asteasolutions/zod-to-openapi": "^5.5.0"
+    "@asteasolutions/zod-to-openapi": "^6.4.0"
   },
   "peerDependencies": {
     "express": "^5.0.0-beta.1",
