@@ -60,7 +60,7 @@ describe("openAPIRoute", () => {
       },
     );
 
-    const req = mockRequest({ name: "John" }, { age: 30 }, { id: "123" });
+    const req = mockRequest({ name: "John" }, { age: 30, name: "John" }, { id: "123" });
     const res = mockResponse();
     const next = mockNext();
 
@@ -75,7 +75,7 @@ describe("openAPIRoute", () => {
       res.json({ success: true });
     });
 
-    const req = mockRequest({ name: 123 }, { age: 30 }, { id: "123" });
+    const req = mockRequest({ name: 123 }, { age: 30, name: "John" }, { id: "123" });
     const res = mockResponse();
     const next = mockNext();
 
@@ -91,7 +91,7 @@ describe("openAPIRoute", () => {
       res.json({ success: true });
     });
 
-    const req = mockRequest({ name: "John" }, { age: "thirty" }, { id: "123" });
+    const req = mockRequest({ name: "John" }, { age: "thirty", name: "John" }, { id: "123" });
     const res = mockResponse();
     const next = mockNext();
 
@@ -107,7 +107,7 @@ describe("openAPIRoute", () => {
       res.json({ success: true });
     });
 
-    const req = mockRequest({ name: "John" }, { age: 30 }, { id: 123 });
+    const req = mockRequest({ name: "John" }, { age: 30, name: "John" }, { id: 123 });
     const res = mockResponse();
     const next = mockNext();
 
@@ -124,7 +124,7 @@ describe("openAPIRoute", () => {
       res.json({ success: "true" });
     });
 
-    const req = mockRequest({ name: "John" }, { age: 30 }, { id: "123" });
+    const req = mockRequest({ name: "John" }, { age: 30, name: "John" }, { id: "123" });
     const res = mockResponse();
     const next = mockNext();
 
