@@ -2,10 +2,10 @@
 # yarn lockfile v1
 
 
-"@asteasolutions/zod-to-openapi@^4.8.0":
-  version "4.8.0"
-  resolved "https://registry.yarnpkg.com/@asteasolutions/zod-to-openapi/-/zod-to-openapi-4.8.0.tgz#34c29228c5cd0098a534b3536c9f486fafca2cc1"
-  integrity sha512-FQlBeHIhSoEhjddAWD1v2zbeBESfTdaAVQuUr0RY9t0rN8ogoEaGirv2Ne8kQQTAVGydJzUMAOIlPULEOQDoeA==
+"@asteasolutions/zod-to-openapi@^5.5.0":
+  version "5.5.0"
+  resolved "https://registry.yarnpkg.com/@asteasolutions/zod-to-openapi/-/zod-to-openapi-5.5.0.tgz#f3be8f1e97ece0fcef2e6ff5e9230da8138d20a6"
+  integrity sha512-d5HwrvM6dOKr3XdeF+DmashGvfEc+1oiEfbscugsiwSTrFtuMa7ETpW9sTNnVgn+hJaz+PRxPQUYD7q9/5dUig==
   dependencies:
     openapi3-ts "^4.1.2"
 

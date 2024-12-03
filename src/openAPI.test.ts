@@ -92,7 +92,7 @@ describe("buildOpenAPIDocument", () => {
     const document = buildOpenAPIDocument({ config, routers, schemaPaths, errors, openApiVersion });
 
     expect(document.paths).to.have.property("/test");
-    expect(document.paths["/test"]).to.have.property("get");
+    expect(document.paths!["/test"]).to.have.property("get");
   });
 
   it("should include error responses if defined", () => {
@@ -160,8 +160,8 @@ describe("buildOpenAPIDocument", () => {
     const errors = { 401: "Unauthorized", 403: "Forbidden" };
 
     const document = buildOpenAPIDocument({ config, routers, schemaPaths, errors, openApiVersion });
-    const method = document.paths["/test"].get;
-    const responseSchema = method!.responses["200"].content["application/json"].schema;
+    const method = document.paths!["/test"].get;
+    const responseSchema = method!.responses!["200"].content["application/json"].schema;
 
     expect(responseSchema.$ref.includes("ResponseSchema")).to.be.true;
   });
@@ -186,7 +186,7 @@ describe("buildOpenAPIDocument", () => {
     const errors = { 401: "Unauthorized", 403: "Forbidden" };
 
     const document = buildOpenAPIDocument({ config, routers, schemaPaths, errors, openApiVersion });
-    const method = document.paths["/test"].get;
+    const method = document.paths!["/test"].get;
     // @ts-ignore
     const requestBodySchema = method!.requestBody?.content["application/json"].schema;
 
