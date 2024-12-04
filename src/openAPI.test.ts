@@ -67,22 +67,18 @@ describe("buildOpenAPIDocument", () => {
       type: "object",
       properties: {
         address: {
-          items: {
-            anyOf: [
-              {
-                type: "integer",
-              },
-              {
-                type: "string",
-              },
-              {
-                enum: ["street", "avenue", "boulevard"],
-                type: "string",
-              },
-            ],
-          },
-          maxItems: 3,
-          minItems: 3,
+          prefixItems: [
+            {
+              type: "integer",
+            },
+            {
+              type: "string",
+            },
+            {
+              enum: ["street", "avenue", "boulevard"],
+              type: "string",
+            },
+          ],
           type: "array",
         },
         name: { type: "string" },
@@ -95,22 +91,18 @@ describe("buildOpenAPIDocument", () => {
       type: "object",
       properties: {
         address: {
-          items: {
-            anyOf: [
-              {
-                type: "integer",
-              },
-              {
-                type: "string",
-              },
-              {
-                enum: ["street", "avenue", "boulevard"],
-                type: "string",
-              },
-            ],
-          },
-          maxItems: 3,
-          minItems: 3,
+          prefixItems: [
+            {
+              type: "integer",
+            },
+            {
+              type: "string",
+            },
+            {
+              enum: ["street", "avenue", "boulevard"],
+              type: "string",
+            },
+          ],
           type: "array",
         },
         name: { type: "string" },
@@ -268,6 +260,6 @@ describe("buildOpenAPIDocument", () => {
     const responseSchema = document.components!.schemas!.ResponseSchema as SchemaObject;
     const value = responseSchema.properties!.value as SchemaObject;
 
-    expect(value.type).to.equal("integer");
+    expect(value.type).to.equal("string");
   });
 });
