@@ -1,8 +1,16 @@
+import { extendZodWithOpenApi } from "@asteasolutions/zod-to-openapi";
 import { z } from "zod";
 
-const BodySchema = z.object({ name: z.string() });
-const QuerySchema = z.object({ age: z.number().optional() });
+extendZodWithOpenApi(z);
+
+const BaseSchema = z.object({ name: z.string() });
+
+const BodySchema = BaseSchema.openapi("Body", { title: "User", description: "Required user information" });
+const QuerySchema = BaseSchema.extend({ age: z.number().optional() }).openapi({
+  title: "User details",
+  description: "Optional user information",
+});
 const ParamsSchema = z.object({ id: z.string() });
 const ResponseSchema = z.object({ success: z.boolean() });
 
-export { BodySchema, ParamsSchema, QuerySchema, ResponseSchema, UnusedSchema };
+export { BodySchema, ParamsSchema, QuerySchema, ResponseSchema };

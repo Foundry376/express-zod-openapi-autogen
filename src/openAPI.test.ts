@@ -67,6 +67,15 @@ describe("buildOpenAPIDocument", () => {
       type: "object",
       properties: { name: { type: "string" } },
       required: ["name"],
+      title: "User",
+      description: "Required user information",
+    });
+    expect(document.components!.schemas!.QuerySchema).to.deep.equal({
+      type: "object",
+      properties: { name: { type: "string" }, age: { type: "number" } },
+      required: ["name"],
+      title: "User details",
+      description: "Optional user information",
     });
   });
 
