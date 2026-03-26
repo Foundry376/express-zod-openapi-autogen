@@ -4,6 +4,18 @@ import { NextFunction, Request, RequestHandler, Response } from "express";
 import { ZodError, ZodSchema, ZodTypeAny, z } from "zod";
 import { ErrorResponse } from "./schemas";
 
+const globalConfig: { warnOnly: boolean } = { warnOnly: false };
+
+/**
+ * Set global configuration for all openAPIRoute handlers. Per-route options
+ * on SchemaDefinition take precedence over this global default.
+ */
+export const configureOpenAPIRoute = (config: { warnOnly?: boolean }) => {
+  if (config.warnOnly !== undefined) {
+    globalConfig.warnOnly = config.warnOnly;
+  }
+};
+
 type ValidatedMiddleware<ZBody, ZQuery, ZParams, ZResponse> = (
   req: Request<ZParams, any, ZBody, ZQuery>,
   res: Response<ZResponse | { error: string } | z.infer<typeof ErrorResponse>>,
@@ -52,6 +64,13 @@ type SchemaDefinition<
    * based on your API handler. This is the last function to run before the OpenAPI route is added to the registry.
    */
   finalizeRouteConfig?: (config: RouteConfig) => RouteConfig;
+
+  /** When true, validation failures for body, query, and params will log console warnings
+   * instead of returning 400 errors. Useful for rolling out Zod schemas on an existing API
+   * where you want to verify schemas match real traffic before enforcing them.
+   * Overrides the global setting from configureOpenAPIRoute when specified.
+   */
+  warnOnly?: boolean;
 };
 
 const check = <TType>(obj?: any, schema?: ZodSchema<TType>): z.SafeParseReturnType<TType, TType> => {
@@ -92,48 +111,68 @@ export const openAPIRoute = <
     const queryResult = check(req.query, schema.query);
     const paramResult = check(req.params, schema.params);
 
-    if (bodyResult.success && queryResult.success && paramResult.success) {
-      // Patch the `res.json` method we pass into the handler so that we can validate the response
-      // body and warn if it doesn't match the provided response schema.
-      const _json = res.json;
-      res.json = (body: unknown) => {
-        // In dev + test, validate that the JSON response from the endpoint matches
-        // the Zod schemas. In production, we skip this because it's just time consuming
-        if (process.env.NODE_ENV !== "production") {
-          const acceptable = z.union([schema.response as ZodTypeAny, ErrorResponse]);
-          const result = schema.response ? acceptable.safeParse(body) : { success: true };
+    const warnOnly = schema.warnOnly ?? globalConfig.warnOnly;
 
-          if (result.success === false && "error" in result) {
-            console.warn(`Note: Response JSON does not match schema:\n${getErrorSummary(result.error)}`);
-          }
-        }
-        return _json.apply(res, [body]);
-      };
+    const allPassed = bodyResult.success && queryResult.success && paramResult.success;
 
-      Object.defineProperty(req, "query", { value: queryResult.data });
-      Object.defineProperty(req, "body", { value: bodyResult.data });
-      Object.defineProperty(req, "params", { value: paramResult.data });
+    if (!allPassed && !warnOnly) {
+      if (!bodyResult.success) {
+        return res.status(400).json({ error: getErrorSummary(bodyResult.error) });
+      }
+      if (!queryResult.success) {
+        return res.status(400).json({ error: getErrorSummary(queryResult.error) });
+      }
+      if (!paramResult.success) {
+        return res.status(400).json({ error: getErrorSummary(paramResult.error) });
+      }
+      return next(new Error("zod-express-guard could not validate this request"));
+    }
 
-      try {
-        return await middleware(req as unknown as Request<TParams, any, TBody, TQuery>, res, next);
-      } catch (err) {
-        return next(err);
+    if (!allPassed) {
+      if (!bodyResult.success) {
+        console.warn(`openAPIRoute: body validation failed: ${getErrorSummary(bodyResult.error)}`);
+      }
+      if (!queryResult.success) {
+        console.warn(`openAPIRoute: query validation failed: ${getErrorSummary(queryResult.error)}`);
+      }
+      if (!paramResult.success) {
+        console.warn(`openAPIRoute: params validation failed: ${getErrorSummary(paramResult.error)}`);
       }
     }
 
-    if (!bodyResult.success) {
-      return res.status(400).json({ error: getErrorSummary(bodyResult.error) });
+    // Patch the `res.json` method we pass into the handler so that we can validate the response
+    // body and warn if it doesn't match the provided response schema.
+    const _json = res.json;
+    res.json = (body: unknown) => {
+      // In dev + test, validate that the JSON response from the endpoint matches
+      // the Zod schemas. In production, we skip this because it's just time consuming
+      if (process.env.NODE_ENV !== "production") {
+        const acceptable = z.union([schema.response as ZodTypeAny, ErrorResponse]);
+        const result = schema.response ? acceptable.safeParse(body) : { success: true };
+
+        if (result.success === false && "error" in result) {
+          console.warn(`Note: Response JSON does not match schema:\n${getErrorSummary(result.error)}`);
+        }
+      }
+      return _json.apply(res, [body]);
+    };
+
+    // Reassign parsed data for validations that succeeded; leave originals for failures
+    if (queryResult.success) {
+      Object.defineProperty(req, "query", { value: queryResult.data });
+    }
+    if (bodyResult.success) {
+      Object.defineProperty(req, "body", { value: bodyResult.data });
+    }
+    if (paramResult.success) {
+      Object.defineProperty(req, "params", { value: paramResult.data });
     }
 
-    if (!queryResult.success) {
-      return res.status(400).json({ error: getErrorSummary(queryResult.error) });
+    try {
+      return await middleware(req as unknown as Request<TParams, any, TBody, TQuery>, res, next);
+    } catch (err) {
+      return next(err);
     }
-
-    if (!paramResult.success) {
-      return res.status(400).json({ error: getErrorSummary(paramResult.error) });
-    }
-
-    return next(new Error("zod-express-guard could not validate this request"));
   };
   fn.validateSchema = schema;
   return fn;

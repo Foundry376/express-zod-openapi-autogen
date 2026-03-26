@@ -3,13 +3,14 @@ import spies from "chai-spies";
 import { NextFunction, Request, Response } from "express";
 import { z } from "zod";
 import { BodySchema, ParamsSchema, QuerySchema, ResponseSchema } from "../mocks/schemas";
-import { openAPIRoute } from "./openAPIRoute";
+import { configureOpenAPIRoute, openAPIRoute } from "./openAPIRoute";
 
 use(spies);
 
 describe("openAPIRoute", () => {
   afterEach(() => {
     spy.restore();
+    configureOpenAPIRoute({ warnOnly: false });
   });
 
   const mockRequest = (body: any, query: any, params: any) =>
@@ -133,5 +134,87 @@ describe("openAPIRoute", () => {
     handler(req, res, next);
 
     expect(consoleWarnStub).to.have.been.called();
+  });
+
+  describe("warnOnly", () => {
+    it("should log warning and call handler when body validation fails with per-route warnOnly", () => {
+      let handlerCalled = false;
+      const handler = openAPIRoute({ ...schema, warnOnly: true }, (_req, res) => {
+        handlerCalled = true;
+        res.json({ success: true });
+      });
+
+      const req = mockRequest({ name: 123 }, { age: 30, name: "John" }, { id: "123" });
+      const res = mockResponse();
+      const next = mockNext();
+
+      const consoleWarnStub = spy.on(console, "warn");
+
+      handler(req, res, next);
+
+      expect(handlerCalled).to.equal(true);
+      expect(res.statusCode).to.equal(200);
+      expect(consoleWarnStub).to.have.been.called.with("openAPIRoute: body validation failed: name: Expected string, received number");
+    });
+
+    it("should log warning and call handler when query validation fails with per-route warnOnly", () => {
+      let handlerCalled = false;
+      const handler = openAPIRoute({ ...schema, warnOnly: true }, (_req, res) => {
+        handlerCalled = true;
+        res.json({ success: true });
+      });
+
+      const req = mockRequest({ name: "John" }, { age: "thirty", name: "John" }, { id: "123" });
+      const res = mockResponse();
+      const next = mockNext();
+
+      const consoleWarnStub = spy.on(console, "warn");
+
+      handler(req, res, next);
+
+      expect(handlerCalled).to.equal(true);
+      expect(res.statusCode).to.equal(200);
+      expect(consoleWarnStub).to.have.been.called.with("openAPIRoute: query validation failed: age: Expected number, received string");
+    });
+
+    it("should log warning and call handler when global warnOnly is set", () => {
+      configureOpenAPIRoute({ warnOnly: true });
+
+      let handlerCalled = false;
+      const handler = openAPIRoute(schema, (_req, res) => {
+        handlerCalled = true;
+        res.json({ success: true });
+      });
+
+      const req = mockRequest({ name: 123 }, { age: 30, name: "John" }, { id: "123" });
+      const res = mockResponse();
+      const next = mockNext();
+
+      const consoleWarnStub = spy.on(console, "warn");
+
+      handler(req, res, next);
+
+      expect(handlerCalled).to.equal(true);
+      expect(res.statusCode).to.equal(200);
+      expect(consoleWarnStub).to.have.been.called.with("openAPIRoute: body validation failed: name: Expected string, received number");
+    });
+
+    it("should return 400 when per-route warnOnly: false overrides global warnOnly: true", () => {
+      configureOpenAPIRoute({ warnOnly: true });
+
+      const handler = openAPIRoute({ ...schema, warnOnly: false }, (_req, res) => {
+        res.json({ success: true });
+      });
+
+      const req = mockRequest({ name: 123 }, { age: 30, name: "John" }, { id: "123" });
+      const res = mockResponse();
+      const next = mockNext();
+
+      handler(req, res, next);
+
+      expect(res.statusCode).to.equal(400);
+      expect(res.body).to.have.property("error");
+      expect(res.body.error).to.equal("name: Expected string, received number");
+    });
   });
 });
