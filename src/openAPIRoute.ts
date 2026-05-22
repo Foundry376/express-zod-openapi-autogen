@@ -73,7 +73,7 @@ type SchemaDefinition<
   warnOnly?: boolean;
 };
 
-const check = <TType>(obj?: any, schema?: ZodSchema<TType>): z.SafeParseReturnType<TType, TType> => {
+const check = <TType>(obj?: any, schema?: ZodSchema<TType>): z.ZodSafeParseResult<TType> => {
   if (!schema) {
     return { success: true, data: obj };
   }
@@ -169,7 +169,11 @@ export const openAPIRoute = <
     }
 
     try {
-      return await middleware(req as unknown as Request<TParams, any, TBody, TQuery>, res, next);
+      return await middleware(
+        req as unknown as Request<z.output<TParams>, any, z.output<TBody>, z.output<TQuery>>,
+        res,
+        next,
+      );
     } catch (err) {
       return next(err);
     }

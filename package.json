@@ -4,6 +4,7 @@
   "main": "dist/index.js",
   "types": "dist/index.d.ts",
   "license": "MIT",
+  "packageManager": "yarn@1.22.22",
   "repository": {
     "url": "https://github.com/Foundry376/express-zod-openapi-autogen"
   },
@@ -16,12 +17,12 @@
     "test": "NODE_ENV=test mocha --exit"
   },
   "dependencies": {
-    "@asteasolutions/zod-to-openapi": "^7.2.0"
+    "@asteasolutions/zod-to-openapi": "^8.5.0"
   },
   "peerDependencies": {
     "express": "^5.0.0-beta.1",
     "openapi3-ts": "^4.1.2",
-    "zod": "^3"
+    "zod": "^4"
   },
   "devDependencies": {
     "@commitlint/cli": "^19.6.0",
@@ -45,6 +46,6 @@
     "semantic-release": "^24.2.0",
     "ts-node": "^10.9.2",
     "typescript": "^5.2.2",
-    "zod": "^3"
+    "zod": "^4"
   }
 }
