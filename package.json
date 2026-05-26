@@ -43,7 +43,7 @@
     "mocha": "^10.8.2",
     "openapi3-ts": "^4.1.2",
     "pinst": "^3.0.0",
-    "semantic-release": "^24.2.0",
+    "semantic-release": "^25.0.0",
     "ts-node": "^10.9.2",
     "typescript": "^5.2.2",
     "zod": "^4"
