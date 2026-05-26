@@ -84,7 +84,7 @@ describe("openAPIRoute", () => {
 
     expect(res.statusCode).to.equal(400);
     expect(res.body).to.have.property("error");
-    expect(res.body.error).to.equal("name: Expected string, received number");
+    expect(res.body.error).to.equal("name: Invalid input: expected string, received number");
   });
 
   it("should return 400 if query validation fails", async () => {
@@ -100,7 +100,7 @@ describe("openAPIRoute", () => {
 
     expect(res.statusCode).to.equal(400);
     expect(res.body).to.have.property("error");
-    expect(res.body.error).to.equal("age: Expected number, received string");
+    expect(res.body.error).to.equal("age: Invalid input: expected number, received string");
   });
 
   it("should return 400 if params validation fails", async () => {
@@ -116,7 +116,7 @@ describe("openAPIRoute", () => {
 
     expect(res.statusCode).to.equal(400);
     expect(res.body).to.have.property("error");
-    expect(res.body.error).to.equal("id: Expected string, received number");
+    expect(res.body.error).to.equal("id: Invalid input: expected string, received number");
   });
 
   it("should validate response and log warning if it doesn't match schema", () => {
@@ -154,7 +154,7 @@ describe("openAPIRoute", () => {
 
       expect(handlerCalled).to.equal(true);
       expect(res.statusCode).to.equal(200);
-      expect(consoleWarnStub).to.have.been.called.with("openAPIRoute: body validation failed: name: Expected string, received number");
+      expect(consoleWarnStub).to.have.been.called.with("openAPIRoute: body validation failed: name: Invalid input: expected string, received number");
     });
 
     it("should log warning and call handler when query validation fails with per-route warnOnly", () => {
@@ -174,7 +174,7 @@ describe("openAPIRoute", () => {
 
       expect(handlerCalled).to.equal(true);
       expect(res.statusCode).to.equal(200);
-      expect(consoleWarnStub).to.have.been.called.with("openAPIRoute: query validation failed: age: Expected number, received string");
+      expect(consoleWarnStub).to.have.been.called.with("openAPIRoute: query validation failed: age: Invalid input: expected number, received string");
     });
 
     it("should log warning and call handler when global warnOnly is set", () => {
@@ -196,7 +196,7 @@ describe("openAPIRoute", () => {
 
       expect(handlerCalled).to.equal(true);
       expect(res.statusCode).to.equal(200);
-      expect(consoleWarnStub).to.have.been.called.with("openAPIRoute: body validation failed: name: Expected string, received number");
+      expect(consoleWarnStub).to.have.been.called.with("openAPIRoute: body validation failed: name: Invalid input: expected string, received number");
     });
 
     it("should return 400 when per-route warnOnly: false overrides global warnOnly: true", () => {
@@ -214,7 +214,7 @@ describe("openAPIRoute", () => {
 
       expect(res.statusCode).to.equal(400);
       expect(res.body).to.have.property("error");
-      expect(res.body.error).to.equal("name: Expected string, received number");
+      expect(res.body.error).to.equal("name: Invalid input: expected string, received number");
     });
   });
 });

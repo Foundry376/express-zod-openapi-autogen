@@ -1,5 +1,6 @@
 import {
   extendZodWithOpenApi,
+  getRefId,
   OpenApiGeneratorV3,
   OpenApiGeneratorV31,
   OpenAPIRegistry,
@@ -9,7 +10,7 @@ import {
 import { OpenApiVersion } from "@asteasolutions/zod-to-openapi/dist/openapi-generator";
 import { RequestHandler, Router } from "express";
 import type { ComponentsObject } from "openapi3-ts/oas30";
-import { z, ZodArray, ZodEffects, ZodObject } from "zod";
+import { z, ZodArray, ZodObject } from "zod";
 import { getSchemaOfOpenAPIRoute } from "./openAPIRoute";
 import { ErrorResponse } from "./schemas";
 
@@ -45,12 +46,11 @@ export function buildOpenAPIDocument(args: {
     if (!type) {
       return undefined;
     }
-    if (type instanceof ZodEffects) {
-      const nonEffectedObj = schemas.find((s) => s.key === type._def.openapi?._internal?.refId);
-      if (nonEffectedObj) {
-        return nonEffectedObj.registered;
-      } else {
-        return type.innerType();
+    const refId = getRefId(type);
+    if (refId) {
+      const registered = schemas.find((s) => s.key === refId);
+      if (registered) {
+        return registered.registered;
       }
     }
     const named = schemas.find((a) => a.schema === type);
@@ -176,7 +176,7 @@ export function buildOpenAPIDocument(args: {
           ? {
               content: {
                 "application/json": {
-                  schema: referencingNamedSchemas(body),
+                  schema: referencingNamedSchemas(body)!,
                 },
               },
             }

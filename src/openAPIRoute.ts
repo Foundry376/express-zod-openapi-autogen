@@ -1,7 +1,7 @@
 /* eslint-disable @typescript-eslint/no-explicit-any */
 import { RouteConfig } from "@asteasolutions/zod-to-openapi";
 import { NextFunction, Request, RequestHandler, Response } from "express";
-import { ZodError, ZodSchema, ZodTypeAny, z } from "zod";
+import { ZodError, z } from "zod";
 import { ErrorResponse } from "./schemas";
 
 const globalConfig: { warnOnly: boolean } = { warnOnly: false };
@@ -22,12 +22,12 @@ type ValidatedMiddleware<ZBody, ZQuery, ZParams, ZResponse> = (
   next: NextFunction,
 ) => any;
 
-type SchemaDefinition<
-  TBody extends ZodTypeAny,
-  TQuery extends ZodTypeAny,
-  TParams extends ZodTypeAny,
-  TResponse extends ZodTypeAny,
-> = {
+// When a schema is declared, infer its output. When no schema is declared
+// (the property is undefined), default to `any` to preserve the behavior of
+// the legacy zod 3 typings, which used `ZodTypeAny = ZodType<any, any, any>`.
+type InferOutput<T> = T extends { _zod: { output: infer O } } ? O : any;
+
+type SchemaDefinition<TBody, TQuery, TParams, TResponse> = {
   /**The category this route should be displayed in within the OpenAPI documentation. */
   tag: string;
   /**A short one-line description of the route */
@@ -73,12 +73,11 @@ type SchemaDefinition<
   warnOnly?: boolean;
 };
 
-const check = <TType>(obj?: any, schema?: ZodSchema<TType>): z.SafeParseReturnType<TType, TType> => {
+const check = (obj: any, schema?: z.ZodType<any, any, any>): z.ZodSafeParseResult<any> => {
   if (!schema) {
     return { success: true, data: obj };
   }
-  const r = schema.safeParse(obj);
-  return r;
+  return schema.safeParse(obj);
 };
 
 type ValidatedRequestHandler = RequestHandler & {
@@ -97,19 +96,19 @@ export const getErrorSummary = (error: ZodError<unknown>) => {
  * Note: This function wraps the route handler rather than just being a chained piece
  * of middleware so that we can validate the response shape as well as the request shape.
  */
-export const openAPIRoute = <
-  TBody extends ZodTypeAny,
-  TQuery extends ZodTypeAny,
-  TParams extends ZodTypeAny,
-  TResponse extends ZodTypeAny,
->(
+export const openAPIRoute = <TBody, TQuery, TParams, TResponse>(
   schema: SchemaDefinition<TBody, TQuery, TParams, TResponse>,
-  middleware: ValidatedMiddleware<z.infer<TBody>, z.infer<TQuery>, z.infer<TParams>, z.infer<TResponse>>,
+  middleware: ValidatedMiddleware<
+    InferOutput<TBody>,
+    InferOutput<TQuery>,
+    InferOutput<TParams>,
+    InferOutput<TResponse>
+  >,
 ): RequestHandler => {
   const fn: ValidatedRequestHandler = async (req, res, next) => {
-    const bodyResult = check(req.body, schema.body);
-    const queryResult = check(req.query, schema.query);
-    const paramResult = check(req.params, schema.params);
+    const bodyResult = check(req.body, schema.body as z.ZodType<any, any, any> | undefined);
+    const queryResult = check(req.query, schema.query as z.ZodType<any, any, any> | undefined);
+    const paramResult = check(req.params, schema.params as z.ZodType<any, any, any> | undefined);
 
     const warnOnly = schema.warnOnly ?? globalConfig.warnOnly;
 
@@ -147,7 +146,7 @@ export const openAPIRoute = <
       // In dev + test, validate that the JSON response from the endpoint matches
       // the Zod schemas. In production, we skip this because it's just time consuming
       if (process.env.NODE_ENV !== "production") {
-        const acceptable = z.union([schema.response as ZodTypeAny, ErrorResponse]);
+        const acceptable = z.union([schema.response as z.ZodType<any, any, any>, ErrorResponse]);
         const result = schema.response ? acceptable.safeParse(body) : { success: true };
 
         if (result.success === false && "error" in result) {
@@ -169,7 +168,11 @@ export const openAPIRoute = <
     }
 
     try {
-      return await middleware(req as unknown as Request<TParams, any, TBody, TQuery>, res, next);
+      return await middleware(
+        req as unknown as Request<InferOutput<TParams>, any, InferOutput<TBody>, InferOutput<TQuery>>,
+        res,
+        next,
+      );
     } catch (err) {
       return next(err);
     }
